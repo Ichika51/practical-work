@@ -61,8 +61,10 @@ jobs:
         pip install -r requirements.txt
         pip install pytest
 
-        pylint --fail-under=6.0 --disable=import-error,redefined-outer-name,missing-final-newline main.py test_app.pypylint --fail-under=6.0 --disable=import-error,redefined-outer-name main.py test_app.py
-      
+        echo "" >> main.py
+        echo "" >> test_app.py
+
+        python -m pylint --fail-under=6.0 --disable=import-error,redefined-outer-name main.py test_app.py
   # Сборка и тестирование Docker образа
   docker-build:
     name: Build and Test Docker Image
