@@ -1,20 +1,27 @@
+"""Flask application for CI/CD demonstration."""
 from flask import Flask
 
 app = Flask(__name__)
-
 APP_VERSION = "1.0.0"
 
-@app.route('/')
+
+@app.route("/")
 def hello():
+    """Return greeting message."""
     return "Hello, CI/CD World!"
 
-@app.route('/health')
+
+@app.route("/health")
 def health():
-    return "OK", 200
+    """Health check endpoint."""
+    return "OK"
 
-@app.route('/version')
+
+@app.route("/version")
 def version():
-    return f"Version: {APP_VERSION}", 200
+    """Return application version."""
+    return f"Version: {APP_VERSION}"
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)
