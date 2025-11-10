@@ -6,7 +6,7 @@ app = Flask(__name__)
 def hello():
     return "Hello, CI/CD World!"
 
-@app.route('/health')  # Добавьте этот endpoint
+@app.route('/health')
 def health():
     return "OK", 200
 
