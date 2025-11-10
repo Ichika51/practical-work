@@ -22,3 +22,9 @@ def test_health_route(client):
     response = client.get('/health')
     assert response.status_code == 200
     assert b"OK" in response.data
+
+def test_version_route(client):
+    """Тест version endpoint"""
+    response = client.get('/version')
+    assert response.status_code == 200
+    assert b"1.0.0" in response.data
