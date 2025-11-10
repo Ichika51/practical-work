@@ -144,40 +144,55 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
+      documentation:
+    name: Generate Documentation
+    runs-on: ubuntu-latest
+    needs: test
+    if: always()
+    
+    steps:
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.11'
 
-    - name: Install Sphinx and extensions
+    - name: Install project and documentation dependencies
       run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest
         pip install sphinx sphinx-rtd-theme sphinx-autodoc-typehints
 
     - name: Generate Documentation with autodoc
       run: |
-        # Создаём структуру, если её нет
         mkdir -p docs
 
-        # Генерируем структуру проекта Sphinx
+        # Генерация базовой структуры Sphinx
         sphinx-quickstart docs --quiet --project "Flask CI/CD" --author "Your Name" --sep
 
-        # Добавляем расширения в conf.py (аккуратно, без отступов)
         CONF_FILE="docs/source/conf.py"
-        echo '' >> $CONF_FILE
-        echo 'extensions = [' >> $CONF_FILE
-        echo '    "sphinx.ext.autodoc",' >> $CONF_FILE
-        echo '    "sphinx.ext.napoleon",' >> $CONF_FILE
-        echo '    "sphinx_autodoc_typehints",' >> $CONF_FILE
-        echo ']' >> $CONF_FILE
-        echo '' >> $CONF_FILE
-        echo 'html_theme = "sphinx_rtd_theme"' >> $CONF_FILE
-        echo 'import os, sys' >> $CONF_FILE
-        echo 'sys.path.insert(0, os.path.abspath("../../"))' >> $CONF_FILE
 
-        # Генерируем rst из исходников
+        cat >> $CONF_FILE << 'EOF'
+        extensions = [
+            "sphinx.ext.autodoc",
+            "sphinx.ext.napoleon",
+            "sphinx_autodoc_typehints",
+        ]
+
+        html_theme = "sphinx_rtd_theme"
+
+        import os, sys
+        sys.path.insert(0, os.path.abspath("../"))
+
+        # Если какие-то импорты недоступны, чтобы Sphinx не падал
+        autodoc_mock_imports = []
+
+        EOF
+
+        # Генерация rst-файлов из исходников (main.py, test_app.py)
         sphinx-apidoc -o docs/source ../ -f
 
-        # Строим документацию
+        # Сборка HTML-документации
         sphinx-build -b html docs/source docs/build/html
 
     - name: Upload documentation artifact
@@ -186,6 +201,7 @@ jobs:
         name: project-documentation-${{ github.sha }}
         path: docs/build/html/
         retention-days: 30
+
 
   # Итоговый отчет
   report:
