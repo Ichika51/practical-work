@@ -28,7 +28,7 @@ def test_version_endpoint(client):
     """Test version endpoint."""
     response = client.get("/version")
     assert response.status_code == 200
-    assert b"1.0.0" in response.data
+    assert b"1.0.1" in response.data
 
 
 def test_main_endpoint(client):
