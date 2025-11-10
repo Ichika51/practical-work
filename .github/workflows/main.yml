@@ -137,35 +137,25 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract version and set outputs
-        id: version_extract
+      - name: Extract version
+        id: get_version
         run: |
           VERSION=$(grep "APP_VERSION" main.py | cut -d'"' -f2)
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "tag=v$VERSION" >> $GITHUB_OUTPUT
-          echo "Detected version: $VERSION"
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
 
-      - name: Create Git Tag
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git tag ${{ steps.version_extract.outputs.tag }}
-          git push origin ${{ steps.version_extract.outputs.tag }}
-
-      - name: Create GitHub Release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ steps.version_extract.outputs.tag }}
-          release_name: Release ${{ steps.version_extract.outputs.tag }}
+          tag_name: v${{ env.VERSION }}
+          name: Release v${{ env.VERSION }}
           body: |
             Automated release from CI/CD pipeline
-            - Version: ${{ steps.version_extract.outputs.version }}
+            - Version: ${{ env.VERSION }}
             - Commit: ${{ github.sha }}
-            - All tests passed successfully
           draft: false
           prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # Генерация документации
   documentation:
