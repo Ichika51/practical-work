@@ -146,12 +146,17 @@ jobs:
           echo "TAG=v$VERSION" >> $GITHUB_ENV
           echo "Detected version: $VERSION"
 
+      - name: Debug version variables
+        run: |
+          echo "VERSION env variable: $VERSION"
+          echo "TAG env variable: $TAG"
+
       - name: Create Git Tag
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git tag ${{ env.TAG }}
-          git push origin ${{ env.TAG }}
+          git tag $TAG
+          git push origin $TAG
 
       - name: Create GitHub Release
         uses: actions/create-release@v1
