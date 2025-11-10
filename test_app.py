@@ -1,4 +1,5 @@
 """Unit tests for Flask application."""
+import os
 import pytest
 from main import app
 
@@ -26,9 +27,10 @@ def test_health_endpoint(client):
 
 def test_version_endpoint(client):
     """Test version endpoint."""
+    expected_version = os.getenv("APP_VERSION", "0.0.0").encode()
     response = client.get("/version")
     assert response.status_code == 200
-    assert b"1.0.1" in response.data
+    assert expected_version in response.data
 
 
 def test_main_endpoint(client):

@@ -1,8 +1,15 @@
 """Flask application for CI/CD demonstration."""
+import os
 from flask import Flask
+from dotenv import load_dotenv
+
+# Загружаем переменные окружения из .env
+load_dotenv()
 
 app = Flask(__name__)
-APP_VERSION = "1.0.1"
+
+# Получаем версию приложения из .env, если нет — используем значение по умолчанию
+APP_VERSION = os.getenv("APP_VERSION", "0.0.0")
 
 
 @app.route("/")
@@ -24,4 +31,4 @@ def version():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=int(os.getenv("PORT", 5000)))

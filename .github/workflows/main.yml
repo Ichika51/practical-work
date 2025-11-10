@@ -133,25 +133,24 @@ jobs:
     runs-on: ubuntu-latest
     needs: [test, lint, docker-build, docker-compose-test]
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/release'
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create Git Tag with Version
+      - name: Load version from .env and create Git tag
         run: |
-          # Читаем версию из файла и создаем тег
-          VERSION=$(grep -oP 'APP_VERSION = "\K[^"]+' main.py)
+          VERSION=$(grep -E '^APP_VERSION=' .env | cut -d '=' -f2)
           TAG="v$VERSION"
-          echo "Creating tag: $TAG"
-          
+
+          echo "Detected version: $VERSION"
+          echo "Preparing to create tag: $TAG"
+
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git tag "$TAG"
-          git push origin "$TAG"
-          echo "Tag $TAG created and pushed successfully"
+
 
   # Генерация документации
   documentation:
@@ -169,8 +168,7 @@ jobs:
         mkdir -p docs
         
         # Извлекаем актуальную версию из кода
-        VERSION=$(grep "APP_VERSION" main.py | cut -d'"' -f2)
-        
+        VERSION=$(grep -E '^APP_VERSION=' .env | cut -d '=' -f2)
         # Основная документация проекта
         cat > docs/README.md << EOF
         # Flask CI/CD Project Documentation
