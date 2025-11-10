@@ -153,29 +153,31 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
+        pip install pytest
         pip install sphinx sphinx-rtd-theme sphinx-autodoc-typehints
 
     - name: Generate Documentation
       run: |
-        # Создаём базовую структуру Sphinx
+        # Создаём структуру Sphinx
         mkdir -p docs
         sphinx-quickstart docs --quiet --project "Flask CI/CD" --author "Your Name" --sep
 
         CONF_FILE="docs/source/conf.py"
 
-        # Настройка Sphinx для автогенерации функций
+        # Добавляем конфигурацию с правильным путём
         cat >> $CONF_FILE << 'EOF'
         extensions = [
-            "sphinx.ext.autodoc",         # Автогенерация документации по docstring
-            "sphinx.ext.napoleon",        # Поддержка Google / NumPy docstring
-            "sphinx.ext.viewcode",        # Ссылка на исходный код
-            "sphinx_autodoc_typehints",   # Отображение аннотаций типов
+            "sphinx.ext.autodoc",
+            "sphinx.ext.napoleon",
+            "sphinx.ext.viewcode",
+            "sphinx_autodoc_typehints",
         ]
 
         html_theme = "sphinx_rtd_theme"
 
         import os, sys
-        sys.path.insert(0, os.path.abspath("../"))
+        # Добавляем путь ДВА уровня вверх, чтобы видеть main.py
+        sys.path.insert(0, os.path.abspath("../../"))
 
         autodoc_mock_imports = []
         autodoc_default_options = {
@@ -185,10 +187,10 @@ jobs:
         }
         EOF
 
-        # Генерация rst-файлов из исходников
-        sphinx-apidoc -o docs/source . -f
+        # Генерируем rst из исходников
+        sphinx-apidoc -o docs/source ../.. -f
 
-        # Добавляем ссылки на модули в оглавление
+        # Добавляем модули в index.rst
         echo '
         .. toctree::
           :maxdepth: 2
@@ -197,7 +199,7 @@ jobs:
           modules
         ' >> docs/source/index.rst
 
-        # Сборка HTML-документации
+        # Собираем документацию
         sphinx-build -b html docs/source docs/build/html
 
     - name: Upload documentation artifact
@@ -206,6 +208,7 @@ jobs:
         name: project-documentation-${{ github.sha }}
         path: docs/build/html/
         retention-days: 30
+
 
   # Итоговый отчет
   report:
