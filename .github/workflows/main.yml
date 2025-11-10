@@ -37,6 +37,12 @@ jobs:
       run: |
         python -m pytest test_app.py -v
 
+    - name: Debug env file
+      run: |
+        ls -la
+        echo "------ .env contents ------"
+        cat .env || echo ".env not found!"
+
   # Проверка качества кода
   lint:
     name: Code Quality Check
