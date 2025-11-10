@@ -144,52 +144,41 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Generate Documentation with Search
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install Sphinx and dependencies
       run: |
-        pip install sphinx sphinx-rtd-theme
-        
-        sphinx-quickstart docs --quiet --project "Flask CI/CD" --author "Your Name"
-        
-        # Генерируем документацию ИЗ ВАШЕГО КОДА
-        sphinx-apidoc -o docs/ . -f
-        
-        # Обновляем index.rst
-        cat > docs/index.rst << 'EOF'
-        Flask CI/CD Project
-        ===================
+        pip install sphinx sphinx-rtd-theme sphinx-autodoc-typehints
 
-        .. toctree::
-          :maxdepth: 2
-          :caption: API Documentation:
-          
-          modules
+    - name: Generate Documentation with autodoc
+      run: |
+        # Создаём папку документации, если её нет
+        mkdir -p docs
 
-        Manual
-        ------
+        # Генерируем шаблон проекта Sphinx
+        sphinx-quickstart docs --quiet --project "Flask CI/CD" --author "Your Name" --sep
 
-        API Endpoints
-        ~~~~~~~~~~~~~
+        # Включаем autodoc, typehints и theme
+        sed -i '/extensions = \[/a\ \ \ \ "sphinx.ext.autodoc",\n    "sphinx.ext.napoleon",\n    "sphinx_autodoc_typehints",' docs/source/conf.py
+        sed -i '/html_theme =/c\html_theme = "sphinx_rtd_theme"' docs/source/conf.py
 
-        * ``GET /health`` - Health check
-        * ``GET /version`` - Версия приложения  
-        * ``GET /`` - Главная страница
+        # Добавляем путь к исходникам
+        echo 'import os, sys; sys.path.insert(0, os.path.abspath("../../"))' >> docs/source/conf.py
 
-        CI/CD Pipeline
-        ~~~~~~~~~~~~~~
+        # Генерируем rst из исходников проекта
+        sphinx-apidoc -o docs/source ../ -f
 
-        * Тестирование на Python 3.9, 3.10, 3.11
-        * Проверка качества кода (Flake8, Pylint)
-        * Сборка Docker образа
-        * Автоматическая документация
-        EOF
-            
-            sphinx-build -b html docs/ docs/build/
+        # Собираем документацию
+        sphinx-build -b html docs/source docs/build/html
 
     - name: Upload documentation artifact
       uses: actions/upload-artifact@v4
       with:
         name: project-documentation-${{ github.sha }}
-        path: docs/
+        path: docs/build/html/
         retention-days: 30
 
   # Итоговый отчет
