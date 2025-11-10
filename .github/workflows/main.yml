@@ -137,21 +137,18 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract version and create tag
+      - name: Create Git Tag with Version
         run: |
-          # Извлекаем версию из кода
-          VERSION=$(grep "APP_VERSION" main.py | cut -d'"' -f2)
+          # Читаем версию из файла и создаем тег
+          VERSION=$(grep -oP 'APP_VERSION = "\K[^"]+' main.py)
           TAG="v$VERSION"
-          
           echo "Creating tag: $TAG"
           
-          # Создаем и пушим тег
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git tag $TAG
-          git push origin $TAG
-          
-          echo " Tag $TAG created and pushed successfully"
+          git tag "$TAG"
+          git push origin "$TAG"
+          echo "Tag $TAG created and pushed successfully"
 
   # Генерация документации
   documentation:
