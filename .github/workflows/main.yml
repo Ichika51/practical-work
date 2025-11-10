@@ -144,40 +144,46 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Generate Sphinx Documentation
+    - name: Generate Documentation with Search
       run: |
         pip install sphinx sphinx-rtd-theme
         
-        # Быстрая инициализация (автоматически создаёт структуру)
         sphinx-quickstart docs --quiet --project "Flask CI/CD" --author "Your Name"
         
-        # Заменяем стандартный index.rst на наш контент
+        # Генерируем документацию ИЗ ВАШЕГО КОДА
+        sphinx-apidoc -o docs/ . -f
+        
+        # Обновляем index.rst
         cat > docs/index.rst << 'EOF'
         Flask CI/CD Project
         ===================
 
-        Простое Flask приложение с CI/CD пайплайном.
+        .. toctree::
+          :maxdepth: 2
+          :caption: API Documentation:
+          
+          modules
+
+        Manual
+        ------
 
         API Endpoints
-        -------------
+        ~~~~~~~~~~~~~
 
         * ``GET /health`` - Health check
         * ``GET /version`` - Версия приложения  
         * ``GET /`` - Главная страница
 
         CI/CD Pipeline
-        --------------
+        ~~~~~~~~~~~~~~
 
-        - Тестирование на Python 3.9, 3.10, 3.11
-        - Проверка качества кода (Flake8, Pylint)
-        - Сборка Docker образа
-        - Автоматическая документация
+        * Тестирование на Python 3.9, 3.10, 3.11
+        * Проверка качества кода (Flake8, Pylint)
+        * Сборка Docker образа
+        * Автоматическая документация
         EOF
             
-            # Собираем документацию
             sphinx-build -b html docs/ docs/build/
-            
-            echo "✅ Документация создана в docs/build/"
 
     - name: Upload documentation artifact
       uses: actions/upload-artifact@v4
