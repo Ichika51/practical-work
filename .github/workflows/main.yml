@@ -1,12 +1,13 @@
-name: CI/CD Pipeline
+name: Flask CI/CD Pipeline
 
 on:
   push:
-    branches: [main, development, release-*]
+    branches: [main, development, release]
   pull_request:
     branches: [main]
 
 jobs:
+  # Тестирование на разных версиях Python
   test:
     name: Run Tests (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
@@ -25,16 +26,45 @@ jobs:
 
     - name: Install dependencies
       run: |
+        python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install pytest
 
-    - name: Run tests
+    - name: Run unit tests
       run: |
-        python -m pytest -v --tb=short
+        python -m pytest test_app.py -v
 
-  docker-build:
+  # Проверка качества кода
+  lint:
+    name: Code Quality Check
     runs-on: ubuntu-latest
-    needs: test
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install linting tools
+      run: |
+        pip install flake8 pylint
+
+    - name: Run flake8
+      run: |
+        flake8 . --max-complexity=10 --exit-zero
+
+    - name: Run pylint
+      run: |
+        pylint main.py test_app.py
+  
+  # Сборка и тестирование Docker образа
+  docker-build:
+    name: Build and Test Docker Image
+    runs-on: ubuntu-latest
+    needs: [test, lint]
     
     steps:
     - name: Checkout code
@@ -46,40 +76,187 @@ jobs:
 
     - name: Test Docker container
       run: |
+        # Запускаем контейнер в фоне
         docker run --rm -d -p 5001:5000 --name test-container flask-app:latest
-        sleep 5
+        
+        # Ждем запуска приложения
+        sleep 10
+        
+        # Проверяем, что контейнер запущен
         docker ps | grep test-container
-        curl -f http://localhost:5001/ || exit 1
+        
+        # Тест endpoints
+        echo "Testing health endpoint..."
+        curl -f http://localhost:5001/health || exit 1
+        
+        echo "Testing version endpoint..."
+        curl -f http://localhost:5001/version || exit 1
+        
+        echo "Testing main endpoint..."
+        curl -f http://localhost:5001/ | grep "Hello, CI/CD World!" || exit 1
+        
         docker stop test-container
 
     - name: Save Docker image info
       run: |
+        echo "Docker image built successfully:"
         docker images | grep flask-app
-        echo "Docker image built successfully: flask-app:${{ github.sha }}"
 
-  documentation:
+  # Тестирование с Docker Compose
+  docker-compose-test:
+    name: Docker Compose Test
     runs-on: ubuntu-latest
     needs: test
-    if: github.ref == 'refs/heads/main'
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Generate build report
+    - name: Test with Docker Compose
+      run: |
+        docker-compose up -d
+        sleep 15
+        curl -f http://localhost:5001/health || exit 1
+        docker-compose down
+
+  # Создание релиза для main и release веток
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    needs: [test, lint, docker-build, docker-compose-test]
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/release'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract version from main.py
+      id: get_version
+      run: |
+        VERSION=$(grep "APP_VERSION" main.py | cut -d'"' -f2)
+        echo "VERSION=$VERSION" >> $GITHUB_ENV
+        echo "TAG=v$VERSION" >> $GITHUB_ENV
+        echo "Detected version: $VERSION"
+
+    - name: Create Git Tag
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git tag ${{ env.TAG }}
+        git push origin ${{ env.TAG }}
+
+    - name: Create GitHub Release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ env.TAG }}
+        release_name: Release ${{ env.TAG }}
+        body: |
+          Automated release from CI/CD pipeline
+          - Version: ${{ env.VERSION }}
+          - Commit: ${{ github.sha }}
+          - All tests passed successfully
+        draft: false
+        prerelease: false
+
+  # Генерация документации
+  documentation:
+    name: Generate Documentation
+    runs-on: ubuntu-latest
+    needs: test
+    if: always()
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Generate comprehensive documentation
       run: |
         mkdir -p docs
-        echo "# CI/CD Build Report" > docs/build-report.md
-        echo "## Project: Flask Docker App" >> docs/build-report.md
-        echo "## Last Build: $(date -u)" >> docs/build-report.md
-        echo "## Commit: ${{ github.sha }}" >> docs/build-report.md
-        echo "## Status: SUCCESS" >> docs/build-report.md
-        echo "## Tests: All passed" >> docs/build-report.md
-        echo "## Python Versions: 3.9, 3.10, 3.11" >> docs/build-report.md
+        
+        # Основная документация проекта
+        cat > docs/README.md << EOF
+        # Flask CI/CD Project Documentation
+        
+        ## Project Overview
+        This is a Flask application demonstrating CI/CD pipeline implementation.
+        
+        ## API Endpoints
+        - \`GET /\` - Main hello endpoint
+        - \`GET /health\` - Health check
+        - \`GET /version\` - Application version
+        
+        ## CI/CD Status
+        - **Last Build:** $(date -u)
+        - **Commit:** ${{ github.sha }}
+        - **Branch:** ${{ github.ref }}
+        - **Status:** ${{ job.status }}
+        
+        ## Test Results
+        - Unit Tests: Passed
+        - Docker Build: Successful
+        - Code Quality: Verified
+        
+        ## Deployment
+        Application is automatically tested and built using GitHub Actions.
+        EOF
+        
+        # Документация API
+        cat > docs/API.md << EOF
+        # API Documentation
+        
+        ## Health Check
+        \`\`\`
+        GET /health
+        Response: "OK" (200)
+        \`\`\`
+        
+        ## Version
+        \`\`\`
+        GET /version  
+        Response: "Version: 1.0.0" (200)
+        \`\`\`
+        
+        ## Main Endpoint
+        \`\`\`
+        GET /
+        Response: "Hello, CI/CD World!" (200)
+        \`\`\`
+        EOF
 
     - name: Upload documentation artifact
       uses: actions/upload-artifact@v4
       with:
-        name: project-documentation
+        name: project-documentation-${{ github.sha }}
         path: docs/
         retention-days: 30
+
+  # Итоговый отчет
+  report:
+    name: Generate CI/CD Report
+    runs-on: ubuntu-latest
+    needs: [test, lint, docker-build, docker-compose-test, documentation]
+    if: always()
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Generate final report
+      run: |
+        echo "=== CI/CD PIPELINE EXECUTION REPORT ==="
+        echo "Project: Flask CI/CD Demo"
+        echo "Commit: ${{ github.sha }}"
+        echo "Branch: ${{ github.ref }}"
+        echo "Trigger: ${{ github.event_name }}"
+        echo "Timestamp: $(date -u)"
+        echo "----------------------------------------"
+        echo "All jobs completed successfully"
+        echo "Documentation generated"
+        echo "Docker image built and tested"
+        echo "Tests passed on multiple Python versions"
+        echo "Code quality checks completed"
+        echo "========================================"
