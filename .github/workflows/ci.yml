@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.9, 3.10]
+        python-version: ["3.9", "3.10", "3.11"]
 
     steps:
     - name: Checkout code
@@ -45,19 +45,18 @@ jobs:
 
     - name: Test Docker container
       run: |
-        docker run --rm -d -p 5001:5000 --name test-container flask-app
-        sleep 10
+        docker run --rm -d -p 5001:5000 --name test-container flask-app:latest
+        sleep 5
+        # Проверяем что контейнер запустился
+        docker ps | grep test-container
+        # Проверяем ответ приложения
         curl -f http://localhost:5001/ || exit 1
         docker stop test-container
 
-    - name: Upload Docker image artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: docker-image-info
-        path: |
-          Dockerfile
-          docker-compose.yml
-        retention-days: 30
+    - name: Save Docker image info
+      run: |
+        docker images | grep flask-app
+        echo "Docker image built successfully: flask-app:${{ github.sha }}"
 
   documentation:
     runs-on: ubuntu-latest
@@ -70,14 +69,16 @@ jobs:
 
     - name: Generate build report
       run: |
+        mkdir -p docs
         echo "# CI/CD Build Report" > docs/build-report.md
         echo "## Project: Flask Docker App" >> docs/build-report.md
         echo "## Last Build: $(date -u)" >> docs/build-report.md
-        echo "## Commit: ${{ github.sha }}" >> docs.build-report.md
+        echo "## Commit: ${{ github.sha }}" >> docs/build-report.md
         echo "## Status: SUCCESS" >> docs/build-report.md
         echo "## Tests: All passed" >> docs/build-report.md
+        echo "## Python Versions: 3.9, 3.10, 3.11" >> docs/build-report.md
 
-    - name: Upload documentation
+    - name: Upload documentation artifact
       uses: actions/upload-artifact@v4
       with:
         name: project-documentation
