@@ -8,6 +8,7 @@ on:
 
 jobs:
   test:
+    name: Run Tests (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -47,9 +48,7 @@ jobs:
       run: |
         docker run --rm -d -p 5001:5000 --name test-container flask-app:latest
         sleep 5
-        # Проверяем что контейнер запустился
         docker ps | grep test-container
-        # Проверяем ответ приложения
         curl -f http://localhost:5001/ || exit 1
         docker stop test-container
 
