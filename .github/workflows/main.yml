@@ -172,15 +172,15 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Generate Essential Documentation
+    - name: Generate Sphinx Documentation
       run: |
         pip install sphinx sphinx-rtd-theme
         
-        # Быстрая инициализация
+        # Быстрая инициализация (автоматически создаёт структуру)
         sphinx-quickstart docs --quiet --project "Flask CI/CD" --author "Your Name"
         
-        # Минимальный контент
-        cat > docs/source/index.rst << 'EOF'
+        # Заменяем стандартный index.rst на наш контент
+        cat > docs/index.rst << 'EOF'
         Flask CI/CD Project
         ===================
 
@@ -201,11 +201,11 @@ jobs:
         - Сборка Docker образа
         - Автоматическая документация
         EOF
-        
-        # Быстрая сборка
-        sphinx-build -b html docs/source docs/build
-        
-        echo "✅ Документация готова!"
+            
+            # Собираем документацию
+            sphinx-build -b html docs/ docs/build/
+            
+            echo "✅ Документация создана в docs/build/"
 
     - name: Upload documentation artifact
       uses: actions/upload-artifact@v4
