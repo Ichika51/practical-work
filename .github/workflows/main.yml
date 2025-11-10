@@ -168,6 +168,9 @@ jobs:
       run: |
         mkdir -p docs
         
+        # Извлекаем актуальную версию из кода
+        VERSION=$(grep "APP_VERSION" main.py | cut -d'"' -f2)
+        
         # Основная документация проекта
         cat > docs/README.md << EOF
         # Flask CI/CD Project Documentation
@@ -185,6 +188,7 @@ jobs:
         - **Commit:** ${{ github.sha }}
         - **Branch:** ${{ github.ref }}
         - **Status:** ${{ job.status }}
+        - **Version:** $VERSION
         
         ## Test Results
         - Unit Tests: Passed
@@ -195,7 +199,7 @@ jobs:
         Application is automatically tested and built using GitHub Actions.
         EOF
         
-        # Документация API
+        # Документация API с АКТУАЛЬНОЙ версией
         cat > docs/API.md << EOF
         # API Documentation
         
@@ -208,7 +212,7 @@ jobs:
         ## Version
         \`\`\`
         GET /version  
-        Response: "Version: 1.0.0" (200)
+        Response: "Version: $VERSION" (200)
         \`\`\`
         
         ## Main Endpoint
@@ -217,6 +221,8 @@ jobs:
         Response: "Hello, CI/CD World!" (200)
         \`\`\`
         EOF
+        
+        echo "Documentation generated with version: $VERSION"
 
     - name: Upload documentation artifact
       uses: actions/upload-artifact@v4
