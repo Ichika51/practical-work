@@ -149,27 +149,27 @@ jobs:
       with:
         python-version: '3.11'
 
-    - name: Install project and documentation dependencies
+    - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        pip install pytest
         pip install sphinx sphinx-rtd-theme sphinx-autodoc-typehints
 
-    - name: Generate Documentation with autodoc
+    - name: Generate Documentation
       run: |
+        # Создаём базовую структуру Sphinx
         mkdir -p docs
-
-        # Генерация базовой структуры Sphinx
         sphinx-quickstart docs --quiet --project "Flask CI/CD" --author "Your Name" --sep
 
         CONF_FILE="docs/source/conf.py"
 
+        # Настройка Sphinx для автогенерации функций
         cat >> $CONF_FILE << 'EOF'
         extensions = [
-            "sphinx.ext.autodoc",
-            "sphinx.ext.napoleon",
-            "sphinx_autodoc_typehints",
+            "sphinx.ext.autodoc",         # Автогенерация документации по docstring
+            "sphinx.ext.napoleon",        # Поддержка Google / NumPy docstring
+            "sphinx.ext.viewcode",        # Ссылка на исходный код
+            "sphinx_autodoc_typehints",   # Отображение аннотаций типов
         ]
 
         html_theme = "sphinx_rtd_theme"
@@ -177,13 +177,25 @@ jobs:
         import os, sys
         sys.path.insert(0, os.path.abspath("../"))
 
-        # Если какие-то импорты недоступны, чтобы Sphinx не падал
         autodoc_mock_imports = []
-
+        autodoc_default_options = {
+            "members": True,
+            "undoc-members": True,
+            "show-inheritance": True,
+        }
         EOF
 
-        # Генерация rst-файлов из исходников (main.py, test_app.py)
-        sphinx-apidoc -o docs/source ../ -f
+        # Генерация rst-файлов из исходников
+        sphinx-apidoc -o docs/source . -f
+
+        # Добавляем ссылки на модули в оглавление
+        echo '
+        .. toctree::
+          :maxdepth: 2
+          :caption: Contents:
+
+          modules
+        ' >> docs/source/index.rst
 
         # Сборка HTML-документации
         sphinx-build -b html docs/source docs/build/html
