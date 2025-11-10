@@ -12,6 +12,7 @@
 
 ```bash
 docker-compose up --build
+```
 
 ## Branch Protection
 
