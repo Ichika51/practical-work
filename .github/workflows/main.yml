@@ -132,40 +132,41 @@ jobs:
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/release'
     
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Extract version from main.py
-      id: get_version
-      run: |
-        VERSION=$(grep "APP_VERSION" main.py | cut -d'"' -f2)
-        echo "VERSION=$VERSION" >> $GITHUB_ENV
-        echo "TAG=v$VERSION" >> $GITHUB_ENV
-        echo "Detected version: $VERSION"
+      - name: Extract version from main.py
+        id: get_version
+        run: |
+          # Извлекаем версию из main.py
+          VERSION=$(grep "APP_VERSION" main.py | cut -d'"' -f2)
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "TAG=v$VERSION" >> $GITHUB_ENV
+          echo "Detected version: $VERSION"
 
-    - name: Create Git Tag
-      run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        git tag ${{ env.TAG }}
-        git push origin ${{ env.TAG }}
+      - name: Create Git Tag
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git tag ${{ env.TAG }}
+          git push origin ${{ env.TAG }}
 
-    - name: Create GitHub Release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ env.TAG }}
-        release_name: Release ${{ env.TAG }}
-        body: |
-          Automated release from CI/CD pipeline
-          - Version: ${{ env.VERSION }}
-          - Commit: ${{ github.sha }}
-          - All tests passed successfully
-        draft: false
-        prerelease: false
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ env.TAG }}
+          release_name: Release ${{ env.TAG }}
+          body: |
+            Automated release from CI/CD pipeline
+            - Version: ${{ env.VERSION }}
+            - Commit: ${{ github.sha }}
+            - All tests passed successfully
+          draft: false
+          prerelease: false
 
   # Генерация документации
   documentation:
