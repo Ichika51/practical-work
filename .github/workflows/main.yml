@@ -149,29 +149,35 @@ jobs:
       with:
         python-version: '3.11'
 
-    - name: Install Sphinx and dependencies
+    - name: Install Sphinx and extensions
       run: |
         pip install sphinx sphinx-rtd-theme sphinx-autodoc-typehints
 
     - name: Generate Documentation with autodoc
       run: |
-        # Создаём папку документации, если её нет
+        # Создаём структуру, если её нет
         mkdir -p docs
 
-        # Генерируем шаблон проекта Sphinx
+        # Генерируем структуру проекта Sphinx
         sphinx-quickstart docs --quiet --project "Flask CI/CD" --author "Your Name" --sep
 
-        # Включаем autodoc, typehints и theme
-        sed -i '/extensions = \[/a\ \ \ \ "sphinx.ext.autodoc",\n    "sphinx.ext.napoleon",\n    "sphinx_autodoc_typehints",' docs/source/conf.py
-        sed -i '/html_theme =/c\html_theme = "sphinx_rtd_theme"' docs/source/conf.py
+        # Добавляем расширения в conf.py (аккуратно, без отступов)
+        CONF_FILE="docs/source/conf.py"
+        echo '' >> $CONF_FILE
+        echo 'extensions = [' >> $CONF_FILE
+        echo '    "sphinx.ext.autodoc",' >> $CONF_FILE
+        echo '    "sphinx.ext.napoleon",' >> $CONF_FILE
+        echo '    "sphinx_autodoc_typehints",' >> $CONF_FILE
+        echo ']' >> $CONF_FILE
+        echo '' >> $CONF_FILE
+        echo 'html_theme = "sphinx_rtd_theme"' >> $CONF_FILE
+        echo 'import os, sys' >> $CONF_FILE
+        echo 'sys.path.insert(0, os.path.abspath("../../"))' >> $CONF_FILE
 
-        # Добавляем путь к исходникам
-        echo 'import os, sys; sys.path.insert(0, os.path.abspath("../../"))' >> docs/source/conf.py
-
-        # Генерируем rst из исходников проекта
+        # Генерируем rst из исходников
         sphinx-apidoc -o docs/source ../ -f
 
-        # Собираем документацию
+        # Строим документацию
         sphinx-build -b html docs/source docs/build/html
 
     - name: Upload documentation artifact
