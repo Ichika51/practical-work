@@ -134,29 +134,32 @@ jobs:
         docker compose down
 
   # Создание релиза для main и release веток
-  create-tag:
-    name: Create Version Tag
-    runs-on: ubuntu-latest
-    needs: [test, lint, docker-build, docker-compose-test]
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/release'
+    - name: Create Git Tag with Version
+      run: |
+        # Создаем .env если нужно
+        if [ ! -f .env ]; then
+          echo "APP_VERSION=1.0.2" > .env
+          echo "FLASK_ENV=production" >> .env
+          echo "PORT=5000" >> .env
+        fi
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+        # Получаем версию
+        VERSION=$(grep -E '^APP_VERSION=' .env | cut -d '=' -f2 | tr -d '[:space:]')
+        TAG="v$VERSION"
+        echo "Detected version: $VERSION"
+        echo "Preparing to create tag: $TAG"
 
-      - name: Load version from .env and create Git tag
-        run: |
-          VERSION=$(grep -E '^APP_VERSION=' .env | cut -d '=' -f2)
-          TAG="v$VERSION"
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
 
-          echo "Detected version: $VERSION"
-          echo "Preparing to create tag: $TAG"
-
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-
+        # Проверяем, существует ли уже тег
+        if git rev-parse "$TAG" >/dev/null 2>&1; then
+          echo "Tag $TAG already exists, skipping creation."
+        else
+          git tag "$TAG"
+          git push origin "$TAG"
+          echo "Tag $TAG created and pushed successfully"
+        fi
 
   # Генерация документации
   documentation:
