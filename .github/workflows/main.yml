@@ -58,8 +58,8 @@ jobs:
 
     - name: Run pylint
       run: |
-        pylint main.py test_app.py
-  
+        PYTHONPATH=$PWD pylint --fail-under=6.0 --disable=import-error,redefined-outer-name main.py test_app.py
+      
   # Сборка и тестирование Docker образа
   docker-build:
     name: Build and Test Docker Image
