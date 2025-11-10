@@ -12,3 +12,9 @@
 
 ```bash
 docker-compose up --build
+
+## Branch Protection
+
+Ветка main защищена правилами, требующими прохождения:
+- Docker build тестов
+- Unit тестов на Python 3.9, 3.10, 3.11
