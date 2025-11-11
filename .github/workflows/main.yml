@@ -160,13 +160,14 @@ jobs:
         mkdir -p docs
         sphinx-quickstart docs --quiet --project "Flask CI/CD" --author "Your Name"
 
-        # Указываем Sphinx путь к коду
-        echo "import os, sys; sys.path.insert(0, os.path.abspath('.'))" >> docs/conf.py
+        # Добавляем путь к проекту, чтобы Sphinx видел main.py и test_app.py
+        echo "import os, sys" >> docs/conf.py
+        echo "sys.path.insert(0, os.path.abspath('..'))" >> docs/conf.py
         echo "extensions = ['sphinx.ext.autodoc', 'sphinx.ext.napoleon']" >> docs/conf.py
         echo "html_theme = 'sphinx_rtd_theme'" >> docs/conf.py
 
-        # Генерируем rst-файлы и HTML
-        sphinx-apidoc -o docs . -f
+        # Генерация rst и HTML
+        sphinx-apidoc -o docs ../ -f
         sphinx-build -b html docs docs/_build
 
     - name: Upload documentation artifact
