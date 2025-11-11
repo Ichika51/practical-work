@@ -169,7 +169,7 @@ jobs:
         import sys
 
         # Добавляем путь к корню проекта, где лежат main.py и test_app.py
-        sys.path.insert(0, os.path.abspath("."))
+        sys.path.insert(0, os.path.abspath(".."))
 
         project = "Flask CI/CD"
         author = "Your Name"
